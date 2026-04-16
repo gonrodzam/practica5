@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Práctica 5 - JavaScript en la Web</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="guide-panel">
+        <div class="guide-header">
+            <div class="step-indicator" id="stepNum">Cargando...</div>
+            <h1 class="instruction-title" id="stepTitle">...</h1>
+        </div>
+        <div class="guide-content">
+            <div id="stepContent"></div>
+            <div class="interaction-area" id="interactionArea"></div>
+        </div>
+    </div>
+
+    <div class="code-panel">
+        <div class="code-window">
+            <div class="window-header">
+                <div class="dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                <span class="filename" id="fileName">script.js</span>
+            </div>
+            <div class="code-content" id="codeContent"></div>
+        </div>
+    </div>
+</div>
+
+<script src="leccion.js"></script>
+
+<script>
+    let currentStep = 0;
+
+    const ui = {
+        num: document.getElementById('stepNum'),
+        title: document.getElementById('stepTitle'),
+        content: document.getElementById('stepContent'),
+        area: document.getElementById('interactionArea'),
+        codeText: document.getElementById('codeContent'),
+        fileName: document.getElementById('fileName'),
+        bar: document.getElementById('progressBar')
+    };
+
+    function initCourse() {
+        if (typeof LECCION === 'undefined') return alert("Falta leccion.js");
+        loadStep(0);
+    }
+
+    function escapeAndHighlight(str) {
+        if (!str) return '';
+
+        let safe = str.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        safe = safe.replace(/(\/\/.*$)/gm, '<span class="hl-comment">$1</span>');
+        safe = safe.replace(/(".*?"|'.*?'|`[\s\S]*?`)/g, '<span class="hl-str">$1</span>');
+        safe = safe.replace(/\b(const|let|function|if|else|return|for|document|addEventListener|classList|textContent|innerHTML)\b/g, '<span class="hl-key">$1</span>');
+        safe = safe.replace(/\b(querySelector|querySelectorAll|getElementById|push|toggle|trim|includes)\b/g, '<span class="hl-fn">$1</span>');
+
+        return safe.replace(/(&lt;\/?[a-z0-9!]+)|(\s[a-z-]+)=/gi, function(match, isTag, isAttr) {
+            if (isTag) return `<span class="hl-tag">${match}</span>`;
+            if (isAttr) return match.replace(/([a-z-]+)/, '<span class="hl-attr">$1</span>');
+            return match;
+        });
+    }
+
+    function loadStep(index) {
+        const data = LECCION.pasos[index];
+        const total = LECCION.pasos.length;
+
+        ui.num.innerText = `PASO ${index + 1} DE ${total}`;
+        ui.title.innerText = data.titulo;
+        ui.content.innerHTML = data.explicacion;
+        ui.bar.style.width = `${((index + 1) / total) * 100}%`;
+
+        ui.codeText.innerHTML = escapeAndHighlight(data.codigo);
+        ui.fileName.innerText = data.archivo || 'script.js';
+
+        renderInteraction(data.interaccion);
+    }
+
+    function renderInteraction(config) {
+        ui.area.innerHTML = '';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-prev';
+        prevBtn.innerHTML = '&#8592; Paso Anterior';
+        prevBtn.onclick = prevStep;
+        prevBtn.style.display = currentStep === 0 ? 'none' : 'flex';
+        ui.area.appendChild(prevBtn);
+
+        const title = document.createElement('h4');
+        title.innerText = 'COMPROBACIÓN';
+        ui.area.appendChild(title);
+
+        const question = document.createElement('p');
+        question.innerText = config.pregunta;
+        ui.area.appendChild(question);
+
+        const feedback = document.createElement('div');
+        feedback.className = 'feedback-msg';
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-next';
+        nextBtn.innerText = 'Continuar →';
+        nextBtn.onclick = nextStep;
+
+        const showSuccess = (message) => {
+            feedback.innerText = message;
+            feedback.className = 'feedback-msg success';
+            feedback.style.display = 'block';
+            nextBtn.style.display = 'block';
+        };
+
+        if (config.tipo === 'checkpoint') {
+            const btn = document.createElement('button');
+            btn.className = 'btn-action';
+            btn.innerText = config.boton;
+            btn.onclick = () => {
+                btn.innerText = '¡Hecho! ✓';
+                btn.disabled = true;
+                btn.style.background = '#10b981';
+                showSuccess(config.feedback);
+            };
+            ui.area.appendChild(btn);
+        } else if (config.tipo === 'quiz') {
+            const optionsContainer = document.createElement('div');
+
+            config.opciones.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (idx === config.correcta) {
+                        const all = optionsContainer.querySelectorAll('.btn-option');
+                        all.forEach((item) => {
+                            item.disabled = true;
+                            item.style.cursor = 'default';
+                            if (item !== btn) item.style.opacity = '0.5';
+                        });
+                        btn.style.background = '#d1fae5';
+                        btn.style.borderColor = '#10b981';
+                        btn.style.color = '#065f46';
+                        showSuccess(config.mensaje_ok);
+                    } else {
+                        btn.style.background = '#fee2e2';
+                        btn.style.borderColor = '#ef4444';
+                        feedback.innerText = 'Inténtalo de nuevo.';
+                        feedback.className = 'feedback-msg error';
+                        feedback.style.display = 'block';
+                    }
+                };
+                optionsContainer.appendChild(btn);
+            });
+
+            ui.area.appendChild(optionsContainer);
+        }
+
+        ui.area.appendChild(feedback);
+        ui.area.appendChild(nextBtn);
+    }
+
+    function nextStep() {
+        currentStep++;
+        if (currentStep < LECCION.pasos.length) {
+            loadStep(currentStep);
+        } else {
+            ui.num.innerText = 'FIN';
+            ui.title.innerText = '¡Clase completada!';
+            ui.content.innerHTML = '<p>Ya tienes un tutorial completo de JavaScript para páginas web.</p>';
+            ui.area.innerHTML = '<div class="end-state">JS</div>';
+            ui.codeText.innerHTML = '';
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            loadStep(currentStep);
+        }
+    }
+
+    window.onload = initCourse;
+</script>
+</body>
+</html>
