@@ -10,7 +10,7 @@ const LECCION = {
                 <div class="nota-profe">
                     <strong>Idea clave:</strong> HTML estructura, CSS decora y JavaScript da vida.
                 </div>
-                <p>Empieza creando un <code>index.html</code> con un título, un párrafo, unos botones y el enlace al archivo <code>script.js</code>.</p>
+                <p>Empieza creando un <code>index.html</code> con todos los elementos base y sus <code>id</code>, aunque todavía no funcionen. Así evitarás errores cuando empecemos a escribir JavaScript.</p>
             `,
             codigo: `<!DOCTYPE html>
 <html lang="es">
@@ -24,8 +24,28 @@ const LECCION = {
     <main class="panel">
         <h1>Mi primer panel interactivo</h1>
         <p id="mensaje">Pulsa un botón para empezar.</p>
-        <script src="script.js"></script>
+
+        <button id="btn-saludar">Saludar</button>
+
+        <section class="contador">
+            <h2>Contador</h2>
+            <p id="numero">0</p>
+            <button id="btn-restar">Restar</button>
+            <button id="btn-reset">Reset</button>
+            <button id="btn-sumar">Sumar</button>
+        </section>
+
+        <section class="tareas">
+            <h2>Lista de tareas</h2>
+            <input id="input-tarea" type="text" placeholder="Escribe una tarea">
+            <button id="btn-agregar">Agregar</button>
+            <ul id="lista-tareas"></ul>
+        </section>
+
+        <button id="btn-tema">Cambiar tema</button>
     </main>
+
+    <script src="script.js"></script>
 </body>
 </html>`,
             interaccion: {
@@ -66,7 +86,7 @@ const LECCION = {
             codigo: `const mensaje = document.querySelector("#mensaje");`,
             interaccion: {
                 tipo: "quiz",
-                pregunta: "¿Qué devuelve document.querySelector('#mensaje')?",
+                pregunta: "¿Qué devuelve document.querySelector(\"#mensaje\")?",
                 opciones: [
                     "El elemento HTML con id mensaje",
                     "Todos los párrafos de la web",
@@ -316,20 +336,27 @@ botonAgregar.addEventListener("click", function() {
         },
         {
             titulo: "12. Cambiar clases para cambiar estilos",
-            archivo: "script.js",
+            archivo: "script.js + styles.css",
             explicacion: `
                 <p>Una técnica muy usada es activar o quitar clases CSS desde JavaScript.</p>
-                <p>Con eso podemos cambiar apariencia sin tocar estilos en línea.</p>
+                <p>Con eso podemos cambiar apariencia sin tocar estilos en línea, pero para que el alumno vea el cambio la clase debe existir también en <code>styles.css</code>.</p>
                 <div class="nota-profe">
                     <strong>Patrón profesional:</strong> JavaScript decide <em>qué estado hay</em> y CSS decide <em>cómo se ve ese estado</em>.
                 </div>
             `,
-            codigo: `const botonTema = document.querySelector("#btn-tema");
+            codigo: `/* script.js */
+const botonTema = document.querySelector("#btn-tema");
 const panel = document.querySelector(".panel");
 
 botonTema.addEventListener("click", function() {
     panel.classList.toggle("panel-oscuro");
-});`,
+});
+
+/* styles.css */
+.panel-oscuro {
+    background: #0f172a;
+    color: #f8fafc;
+}`,
             interaccion: {
                 tipo: "checkpoint",
                 pregunta: "¿Al pulsar el botón de tema cambia la apariencia del panel?",

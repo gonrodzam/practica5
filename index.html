@@ -53,23 +53,54 @@
         loadStep(0);
     }
 
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function highlightHTML(safe) {
+        return safe.replace(
+            /(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[a-z0-9!:-]+)|(\s[a-z-:]+)=("[^"]*"|'[^']*')/gi,
+            function(match, isComment, isTag, isAttr, isValue) {
+                if (isComment) return `<span class="hl-comment">${match}</span>`;
+                if (isTag) return `<span class="hl-tag">${match}</span>`;
+                if (isAttr) {
+                    return ` <span class="hl-attr">${isAttr.trim()}</span>=<span class="hl-str">${isValue}</span>`;
+                }
+                return match;
+            }
+        );
+    }
+
+    function highlightJS(safe) {
+        const tokens = [];
+
+        const protect = (text, regex, className) => {
+            return text.replace(regex, (match) => {
+                const token = `@@TOKEN${tokens.length}@@`;
+                tokens.push(`<span class="${className}">${match}</span>`);
+                return token;
+            });
+        };
+
+        let result = safe;
+        result = protect(result, /\/\*[\s\S]*?\*\/|\/\/.*$/gm, 'hl-comment');
+        result = protect(result, /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[\s\S]*?`/g, 'hl-str');
+
+        result = result.replace(/\b(const|let|function|if|else|return|for|of|document|addEventListener|classList|textContent|innerHTML)\b/g, '<span class="hl-key">$1</span>');
+        result = result.replace(/\b(querySelector|querySelectorAll|getElementById|createElement|appendChild|forEach|push|toggle|trim|includes)\b/g, '<span class="hl-fn">$1</span>');
+
+        return result.replace(/@@TOKEN(\d+)@@/g, (_, index) => tokens[Number(index)]);
+    }
+
     function escapeAndHighlight(str) {
         if (!str) return '';
 
-        let safe = str.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+        const safe = escapeHtml(str);
+        const looksLikeHtml = /&lt;[a-z!/]/i.test(safe);
 
-        safe = safe.replace(/(\/\/.*$)/gm, '<span class="hl-comment">$1</span>');
-        safe = safe.replace(/(".*?"|'.*?'|`[\s\S]*?`)/g, '<span class="hl-str">$1</span>');
-        safe = safe.replace(/\b(const|let|function|if|else|return|for|document|addEventListener|classList|textContent|innerHTML)\b/g, '<span class="hl-key">$1</span>');
-        safe = safe.replace(/\b(querySelector|querySelectorAll|getElementById|push|toggle|trim|includes)\b/g, '<span class="hl-fn">$1</span>');
-
-        return safe.replace(/(&lt;\/?[a-z0-9!]+)|(\s[a-z-]+)=/gi, function(match, isTag, isAttr) {
-            if (isTag) return `<span class="hl-tag">${match}</span>`;
-            if (isAttr) return match.replace(/([a-z-]+)/, '<span class="hl-attr">$1</span>');
-            return match;
-        });
+        return looksLikeHtml ? highlightHTML(safe) : highlightJS(safe);
     }
 
     function loadStep(index) {
